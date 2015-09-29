@@ -1,6 +1,0 @@
-name = Capterra Conversion Tracking
-description = Conversion tracking for your Capterra landing page.
-package = Other
-core = 7.x
-
-configure = admin/config/system/capterra
