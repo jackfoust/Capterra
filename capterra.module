@@ -1,0 +1,152 @@
+<?php
+
+/**
+ * @file
+ * Adds header script tag for Capterra Conversion Tracking.
+ */
+
+/**
+ * Implements hook_menu().
+ */
+function capterra_menu() {
+
+  // Add a menu item for the module's configuration page.
+  $items['admin/config/system/capterra'] = array(
+    'title' => 'Capterra',
+    'description' => 'Configure Capterra Conversion Tracking.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('capterra_admin_settings_form'),
+    'access arguments' => array('administer capterra'),
+    'type' => MENU_NORMAL_ITEM,
+  );
+
+  return $items;
+}
+
+/**
+ * Implements hook_permission().
+ */
+function capterra_permission() {
+  return array(
+    'administer capterra' => array(
+      'title' => t('Administer Capterra'),
+    ),
+  );
+}
+
+/**
+ * Menu callback; Build the form presenting Capterra configuration options.
+ */
+function capterra_admin_settings_form($form_state) {
+
+  $form['general'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('General settings'),
+  );
+
+  // Render textfield for Capterra vkey.
+  $form['general']['capterra_vkey'] = array(
+    '#title' => t('Capterra vkey'),
+    '#type' => 'textfield',
+    '#default_value' => variable_get('capterra_vkey', ''),
+    '#required' => TRUE,
+    '#description' => t('Your Capterra vkey listed in the code sample on the <a href="@capterra_url">Conversion Tracking Page</a>.', array('@capterra_url' => 'https://www.capterra.com/vp/conversion_tracking')),
+  );
+
+  // Render textfield for Capterra vid.
+  $form['general']['capterra_vid'] = array(
+    '#title' => t('Capterra vid'),
+    '#type' => 'textfield',
+    '#default_value' => variable_get('capterra_vid', ''),
+    '#required' => TRUE,
+    '#description' => t('Your Capterra vid listed in the code sample on the <a href="@capterra_url">Conversion Tracking Page</a>.', array('@capterra_url' => 'https://www.capterra.com/vp/conversion_tracking')),
+  );
+
+  // Render textfield for path to success page.
+  // Typically this would be a node set as the Redirect location
+  // of a Webformon on your landing page.
+  $form['general']['capterra_success_path'] = array(
+    '#title' => t('Success Page path'),
+    '#type' => 'textfield',
+    '#default_value' => variable_get('capterra_success_path', ''),
+    '#required' => TRUE,
+    '#description' => t('The path to the success page of your Capterra landing page.'),
+  );
+
+  $form['tracking'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Conversion Tracking settings'),
+  );
+
+  // Render checkboxes of Roles to prevent conversion tracking
+  // for any specified Roles.
+  $role_options = array_map('check_plain', user_roles());
+  $form['tracking']['capterra_roles'] = array(
+    '#type' => 'checkboxes',
+    '#title' => t('Do not track Roles'),
+    '#default_value' => variable_get('capterra_roles', array()),
+    '#options' => $role_options,
+    '#description' => t('Select roles above to prevent conversion tracking for users in those roles.'),
+  );
+
+  // Just a link to the Capterra Terms.
+  $form['capterra_message'] = array(
+    '#markup' => t('<a href="@capterra_terms_url">Capterra Terms and Conditions</a>', array('@capterra_terms_url' => 'https://www.capterra.com/vp/ct_tac')),
+  );
+
+  return system_settings_form($form);
+}
+
+/**
+ * Implements _form_validate().
+ */
+function capterra_admin_settings_form_validate($form, &$form_state) {
+  // Validate that the success path is a valid internal URL.
+  if (!drupal_valid_path($form_state['values']['capterra_success_path'])) {
+    if (!drupal_lookup_path('source', $form_state['values']['capterra_success_path'])) {
+      form_set_error('capterra_success_path', t('Invalid success page path.'));
+    }
+  }
+}
+
+/**
+ * Implements hook_page_alter().
+ */
+function capterra_page_alter(&$page) {
+  global $user;
+  $path = current_path();
+  $path_alias = drupal_lookup_path('alias', $path);
+  $capterra_success_path = variable_get('capterra_success_path', '');
+
+  // Determine if the current page matches the success path variable set
+  // through the Capterra configuration.
+  // Accepts node id or path alias.
+  if (!empty($capterra_success_path) && ($path == $capterra_success_path || $path_alias == $capterra_success_path)) {
+    // Get array of Roles that should not be tracked, if any.
+    $roles = variable_get('capterra_roles', array());
+    // Assume conversion tracking by default.
+    $track = TRUE;
+
+    // Loop Roles to determine if current user belongs to any.
+    foreach (array_keys($user->roles) as $rid) {
+      if (isset($roles[$rid]) && $rid == $roles[$rid]) {
+        // If user is in at least 1 do not track Role then we will not track this conversion.
+        $track = FALSE;
+        break;
+      }
+    }
+    if ($track) {
+      // Build the JavaScript for conversion tracking.
+      $capterra_vid = variable_get('capterra_vid', '');
+      $capterra_vkey = variable_get('capterra_vkey', '');
+      $script = 'var capterra_vkey = ' . drupal_json_encode($capterra_vkey) . ',';
+      $script .= 'capterra_vid = ' . drupal_json_encode($capterra_vid) . ',';
+      $script .= 'capterra_prefix = (("https:" == document.location.protocol) ? "https://ct.capterra.com" : "http://ct.capterra.com");';
+      $script .= '(function() {var ct = document.createElement("script"); ct.type = "text/javascript"; ct.async = true;ct.src = capterra_prefix + "/capterra_tracker.js?vid=" + capterra_vid + "&vkey=" + capterra_vkey;';
+      $script .= 'var s = document.getElementsByTagName("script")[0]; s.parentNode.insertBefore(ct, s);})();';
+
+      // Add the Capterra JavaScript to the page header.
+      drupal_add_js($script, array('scope' => 'header', 'type' => 'inline'));
+    }
+  }
+}
