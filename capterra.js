@@ -1,10 +1,9 @@
+(function ($) {
 
 /**
  * @file
  * Enables Capterra conversion tracking.
  */
- 
-(function ($) {
   'use strict';
   Drupal.behaviors.capterra = {
     attach: function (context, settings) {
