@@ -1,0 +1,16 @@
+<?php
+
+/**
+ * @file
+ * Install file for Capterra module.
+ */
+ 
+/*
+ * Implements hook_uninstall().
+ */
+function capterra_uninstall() {
+  variable_del('capterra_vid');
+  variable_del('capterra_vkey');
+  variable_del('capterra_success_path');
+  variable_del('capterra_roles');
+}
