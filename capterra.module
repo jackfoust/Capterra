@@ -147,3 +147,13 @@ function capterra_page_alter(&$page) {
     }
   }
 }
+
+/*
+ * Implements hook_uninstall().
+ */
+function capterra_uninstall() {
+  variable_del('capterra_vid');
+  variable_del('capterra_vkey');
+  variable_del('capterra_success_path');
+  variable_del('capterra_roles');
+}
