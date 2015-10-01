@@ -4,8 +4,8 @@
  * @file
  * Install file for Capterra module.
  */
- 
-/*
+
+/**
  * Implements hook_uninstall().
  */
 function capterra_uninstall() {
