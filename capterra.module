@@ -113,7 +113,8 @@ function capterra_admin_settings_form_validate($form, &$form_state) {
  * Implements hook_page_alter().
  */
 function capterra_page_alter(&$page) {
-  global $user;
+
+  $user = user_uid_optional_load();
   $path = current_path();
   $path_alias = drupal_lookup_path('alias', $path);
   $capterra_success_path = variable_get('capterra_success_path', '');
@@ -136,17 +137,13 @@ function capterra_page_alter(&$page) {
       }
     }
     if ($track) {
-      // Build the JavaScript for conversion tracking.
+      // Set variables to be passed to JavaScript.
       $capterra_vid = variable_get('capterra_vid', '');
       $capterra_vkey = variable_get('capterra_vkey', '');
-      $script = 'var capterra_vkey = ' . drupal_json_encode($capterra_vkey) . ',';
-      $script .= 'capterra_vid = ' . drupal_json_encode($capterra_vid) . ',';
-      $script .= 'capterra_prefix = (("https:" == document.location.protocol) ? "https://ct.capterra.com" : "http://ct.capterra.com");';
-      $script .= '(function() {var ct = document.createElement("script"); ct.type = "text/javascript"; ct.async = true;ct.src = capterra_prefix + "/capterra_tracker.js?vid=" + capterra_vid + "&vkey=" + capterra_vkey;';
-      $script .= 'var s = document.getElementsByTagName("script")[0]; s.parentNode.insertBefore(ct, s);})();';
 
       // Add the Capterra JavaScript to the page header.
-      drupal_add_js($script, array('scope' => 'header', 'type' => 'inline'));
+      drupal_add_js(array('capterra' => array('capterra_vid' => $capterra_vid, 'capterra_vkey' => $capterra_vkey)), 'setting');
+      drupal_add_js(drupal_get_path('module', 'capterra') . '/capterra.js');
     }
   }
 }
