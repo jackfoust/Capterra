@@ -155,8 +155,7 @@ function capterra_help($path, $arg) {
   switch ($path) {
     case 'admin/config/system/capterra':
       return t('This page provides an interface for entering your <a href="@capterra_url">Capterra</a> vkey, vid and success path to track your PPC campaign. You may also select any applicable roles to prevent conversion tracking for those roles. Administrators, Content Authors, and other administrative roles would typically not require conversion tracking.', array(
-        '@capterra_url' => 'http://www.capterra.com/')
-        );
+        '@capterra_url' => 'http://www.capterra.com/',
+      ));
   }
 }
-
